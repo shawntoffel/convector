@@ -10,40 +10,37 @@ import (
 
 var LogLevel = LogInfo
 
-type ConvectorOptions struct {
-	Interval time.Duration
-	Jitter   time.Duration
-}
-
 type Convector struct {
 	ticker    *jitterbug.Ticker
 	endpoints []string
 	client    *http.Client
-	opts      ConvectorOptions
 	quit      chan bool
 }
 
-func New(endpoints []string, opts ConvectorOptions) Convector {
-	return NewWithHttpClient(endpoints, opts, &http.Client{})
+func New(endpoints []string) Convector {
+	return NewWithHttpClient(endpoints, &http.Client{})
 }
 
-func NewWithHttpClient(endpoints []string, opts ConvectorOptions, client *http.Client) Convector {
-	ticker := jitterbug.New(
-		opts.Interval,
-		&jitterbug.Norm{Stdev: opts.Jitter},
-	)
-
+func NewWithHttpClient(endpoints []string, client *http.Client) Convector {
 	return Convector{
-		ticker:    ticker,
 		endpoints: endpoints,
 		client:    client,
 		quit:      make(chan bool),
-		opts:      opts,
 	}
 }
 
-func (c Convector) Start() {
-	c.log(LogInfo, "starting with interval: %s, jitter: %s", c.opts.Interval, c.opts.Jitter)
+func (c Convector) Start(interval time.Duration, stdev time.Duration) {
+	if c.ticker != nil {
+		c.ticker.Stop()
+	}
+
+	c.log(LogInfo, "starting with interval: %s, stdev: %s", interval, stdev)
+
+	c.ticker = jitterbug.New(
+		interval,
+		&jitterbug.Norm{Stdev: stdev},
+	)
+
 	go func() {
 		for {
 			select {
@@ -58,7 +55,9 @@ func (c Convector) Start() {
 
 func (c Convector) Stop() {
 	c.log(LogInfo, "stopping")
-	c.ticker.Stop()
+	if c.ticker != nil {
+		c.ticker.Stop()
+	}
 	c.quit <- true
 	c.log(LogInfo, "stopped")
 }
@@ -68,18 +67,21 @@ func (c Convector) tick() {
 
 	for _, endpoint := range c.endpoints {
 		e := strings.TrimSpace(endpoint)
+		if e == "" {
+			continue
+		}
 
 		c.log(LogDebug, "executing endpoint: %s", e)
 
 		_, err := c.client.Get(e)
-		if err != nil {
-			c.log(LogError, err.Error())
-		} else {
+		if err == nil {
 			c.log(LogDebug, "finished executing endpoint: %s", e)
+		} else {
+			c.log(LogError, err.Error())
 		}
 	}
 
-	c.log(LogDebug, "finished endpoint execution for inteval")
+	c.log(LogDebug, "finished endpoint execution for interval")
 }
 
 func (c Convector) log(level int, format string, a ...interface{}) {

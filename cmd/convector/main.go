@@ -21,14 +21,14 @@ var (
 	flagDebug   = false
 
 	interval  = time.Minute * 10
-	jitter    = time.Minute * 5
-	endpoints = ""
+	stdev     = time.Minute * 5
 	timeout   = time.Second * 10
+	endpoints = ""
 )
 
 func init() {
 	flag.DurationVar(&interval, "i", interval, "base interval between requests")
-	flag.DurationVar(&jitter, "j", jitter, "jitter between requests")
+	flag.DurationVar(&stdev, "j", stdev, "standard deviation for a normal distribution jitter between requests")
 	flag.DurationVar(&timeout, "t", timeout, "http client timeout for requests")
 	flag.StringVar(&endpoints, "e", endpoints, "comma-delimited list of endpoints")
 	flag.BoolVar(&flagVersion, "v", false, "print convector version")
@@ -54,14 +54,10 @@ func main() {
 
 	convector := convector.NewWithHttpClient(
 		strings.Split(endpoints, ","),
-		convector.ConvectorOptions{
-			Interval: interval,
-			Jitter:   jitter,
-		},
 		&http.Client{Timeout: timeout},
 	)
 
-	convector.Start()
+	convector.Start(interval, stdev)
 
 	select {
 	case sig := <-interrupt:
