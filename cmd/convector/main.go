@@ -22,7 +22,7 @@ var (
 
 	interval  = time.Minute * 10
 	jitter    = time.Minute * 5
-	endpoints = "https://myip2.shawntoffel.com, https://myip.shawntoffel.com"
+	endpoints = ""
 	timeout   = time.Second * 10
 )
 
