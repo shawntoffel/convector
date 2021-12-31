@@ -71,11 +71,13 @@ func (c Convector) tick() {
 			continue
 		}
 
-		c.log(LogDebug, "executing endpoint: %s", e)
+		c.log(LogDebug, "sending request to endpoint: %s", e)
 
-		_, err := c.client.Get(e)
+		start := time.Now()
+		resp, err := c.client.Get(e)
+		took := time.Since(start)
 		if err == nil {
-			c.log(LogDebug, "finished executing endpoint: %s", e)
+			c.log(LogDebug, "endpoint '%s' responded with status code %d in %s", e, resp.StatusCode, took)
 		} else {
 			c.log(LogError, err.Error())
 		}
