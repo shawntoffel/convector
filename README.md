@@ -2,6 +2,7 @@
 
 Sends GET requests to specified endpoints on a recurring interval with jitter. An example use case may be to avoid cold starts of serverless applications. 
 
+## Usage:
 ```
 Usage of convector:
   -d    enable debug logging
@@ -14,4 +15,9 @@ Usage of convector:
   -t duration
         http client timeout for requests (default 10s)
   -v    print convector version
+```
+
+## Example:
+```sh
+./convector -d -i 10m -j 5m -e "https://myip.shawntoffel.com"
 ```
